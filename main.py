@@ -35,6 +35,7 @@ class ListaEnlazada:
 		print("Inicio")
 		while aux_head != None:
 			print(aux_head.dato)
+			print("-----------------------------------------------------")
 			aux_head = aux_head.sig
 		print("Final")
 
@@ -68,28 +69,31 @@ class Usuario:
     self.post_usuario = []
 
 
-caption = pandas.read_csv("reddit_opinion_democrats.csv", usecols=[2], nrows=50)["self_text"].tolist()
+
+
+caption = pandas.read_csv("reddit_opinion_democrats.csv", usecols=[2], nrows=100000)["self_text"].tolist()
 
 dicc = {}
 for comentario in caption:
-	for palabra in comentario.strip().lower().split():
-		if palabra not in dicc:
-			dicc[palabra] = ListaEnlazada()
+	for palabra in str(comentario).lower().split():
+		if palabra.strip(".?,#$!¿&[]{} ") not in dicc:
+			dicc[palabra.strip(".?,#$!¿&[]{} ")] = ListaEnlazada()
 
-		dicc[palabra].insertar(Nodo(comentario))
-		
+		dicc[palabra.strip(".?,#$!¿&[]{} ")].insertar(Nodo(comentario))
 
-lista = ListaEnlazada()
-
-lista.insertar(nodo1)
-
-print(lista.head.dato)
+print(dicc["amen"].recorrer())
 
 #print(dicc["amen."].head)
 #dicc["amen."].recorrer()
 
+
+
+
+
+
 """
-datos = pandas.read_csv("reddit_opinion_democrats.csv", usecols=[0,2,6], nrows=100)
+
+datos = pandas.read_csv("reddit_opinion_democrats.csv", usecols=[0,2,6])
 
 usuarios = {}
 
@@ -106,9 +110,8 @@ for fila in datos.itertuples(index=False):
 	else:
 		usuarios[username].post_usuario.append(Post(post_id, caption))
 
+print(len(usuarios))
 """
-
-
 
 
 
