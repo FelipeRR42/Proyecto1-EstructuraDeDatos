@@ -1,4 +1,6 @@
 import pandas
+import time
+start_time = time.time()
 
 # Creacion de Clases
 class Nodo:
@@ -14,21 +16,41 @@ class ListaEnlazada:
 
 	def __init__(self):
 		self.head = None
+		self.cantidad = 0
 
-	def insertar(self, nodo):
-
+	def insertar(self, dato):
+		nuevo_nodo = Nodo(dato)
 		#if self.buscar(nodo.dato) != None:
-		nodo.sig = self.head
+		nuevo_nodo.sig = self.head
 		if self.head != None:
-			self.head.ant = nodo
-		self.head = nodo
+			self.head.ant = nuevo_nodo
+		self.head = nuevo_nodo
+		self.cantidad += 1
 
+	def insertar_sin_repeticion(self, dato):
+		if self.buscar(dato) != None:
+			return
+
+		else:
+			nuevo_nodo = Nodo(dato)
+			nuevo_nodo.sig = self.head
+			if self.head != None:
+				self.head.ant = nuevo_nodo
+			self.head = nuevo_nodo
+			self.cantidad += 1
 
 	def buscar(self, dato):
 		aux_head = self.head
 		while (aux_head != None) and (aux_head.dato != dato):
 			aux_head = aux_head.sig
-		return aux_head
+		
+		if aux_head == None:
+			return None
+		else:
+			return aux_head.dato
+		
+		
+		#return aux_head
 
 	def recorrer(self):
 		aux_head = self.head
@@ -47,6 +69,12 @@ class ListaEnlazada:
 
 		if nodo.sig != None:
 			nodo.sig.ant = nodo.ant
+		self.cantidad -= 1
+
+
+
+
+
 
 class Post:
   post_id: str
@@ -70,7 +98,73 @@ class Usuario:
 
 
 
+datos = pandas.read_csv("reddit_opinion_democrats.csv", usecols=[0,2,6], nrows=10000)
 
+usuarios = {}
+dicc = {}
+
+for fila in datos.itertuples(index=False):
+	post_id = fila[0]
+	caption = fila[1]
+	username = fila[2]
+
+	if username not in usuarios:
+		usuarios[username] = Usuario(username)
+
+	usuarios[username].post_usuario.append(Post(post_id, caption))
+
+for usuario in usuarios.values():
+	for post in usuario.post_usuario:
+		for palabra in str(post.caption).lower().split(): 
+			palabra = palabra.strip(".?,#$!¿&[]}{/() ")
+			if palabra not in dicc:
+				dicc[palabra] = ListaEnlazada()
+			dicc[palabra].insertar_sin_repeticion(post.caption)
+
+
+def comparacion(lista1, lista2):
+	aux1 = lista1.head
+	aux2 = lista2.head
+	interseccion = ListaEnlazada()
+
+	while aux1 != None:
+		if lista2.buscar(aux1.dato) != None:
+			interseccion.insertar(aux1.dato)
+		aux1 = aux1.sig
+
+	return interseccion
+
+#dicc["and"].recorrer()
+
+consulta = input("Ingrese una palabra para buscar en los captions: ").lower().strip(".?,#$!¿&[]}{/() ")
+
+consulta = consulta.split()
+
+l1 = dicc[consulta[0]]
+l2 = dicc[consulta[1]]
+
+comparacion(l1,l2).recorrer()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""
 caption = pandas.read_csv("reddit_opinion_democrats.csv", usecols=[2], nrows=100000)["self_text"].tolist()
 
 dicc = {}
@@ -81,43 +175,9 @@ for comentario in caption:
 
 		dicc[palabra.strip(".?,#$!¿&[]{} ")].insertar(Nodo(comentario))
 
-print(dicc["amen"].recorrer())
 
-#print(dicc["amen."].head)
-#dicc["amen."].recorrer()
-
-
-
-
-
-
+dicc["amen."].recorrer()
 """
-
-datos = pandas.read_csv("reddit_opinion_democrats.csv", usecols=[0,2,6])
-
-usuarios = {}
-
-
-for fila in datos.itertuples(index=False):
-	post_id = fila[0]
-	caption = fila[1]
-	username = fila[2]
-
-	if username not in usuarios:
-		usuarios[username] = Usuario(username)
-		usuarios[username].post_usuario.append(Post(post_id, caption))
-
-	else:
-		usuarios[username].post_usuario.append(Post(post_id, caption))
-
-print(len(usuarios))
-"""
-
-
-
-
-
-
 
 
 
