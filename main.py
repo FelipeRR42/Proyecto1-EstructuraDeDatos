@@ -1,5 +1,6 @@
 import pandas
 import time
+import random
 start_time = time.time()
 
 # Creacion de Clases
@@ -77,50 +78,21 @@ class ListaEnlazada:
 
 
 class Post:
-  post_id: str
-  caption: str
-  like: list[str]
+	post_id: str
+	caption: str
 
-  def __init__(self, post_id: str,caption: str):
-    self.post_id = post_id
-    self.caption = caption
-    self.like = []
-
+	def __init__(self, post_id: str,caption: str, cant_likes: int):
+		self.post_id = post_id
+		self.caption = caption
+		self.cant_likes = cant_likes
+		self.usuarios_likes = ListaEnlazada()
 class Usuario:
-  username: str
-  following: list[str]
-  post_usuario: list[Post]
+	username: str
 
-  def __init__(self, username: str):
-    self.username = username
-    self.following = []
-    self.post_usuario = []
-
-
-
-datos = pandas.read_csv("reddit_opinion_democrats.csv", usecols=[0,2,6], nrows=10000)
-
-usuarios = {}
-dicc = {}
-
-for fila in datos.itertuples(index=False):
-	post_id = fila[0]
-	caption = fila[1]
-	username = fila[2]
-
-	if username not in usuarios:
-		usuarios[username] = Usuario(username)
-
-	usuarios[username].post_usuario.append(Post(post_id, caption))
-
-for usuario in usuarios.values():
-	for post in usuario.post_usuario:
-		for palabra in str(post.caption).lower().split(): 
-			palabra = palabra.strip(".?,#$!¿&[]}{/() ")
-			if palabra not in dicc:
-				dicc[palabra] = ListaEnlazada()
-			dicc[palabra].insertar_sin_repeticion(post.caption)
-
+	def __init__(self, username: str):
+		self.username = username
+		self.amigos = []
+		self.post_usuario = []
 
 def comparacion(lista1, lista2):
 	aux1 = lista1.head
@@ -134,197 +106,86 @@ def comparacion(lista1, lista2):
 
 	return interseccion
 
+
+print("Process inicio --- %s seconds ---" % (time.time() - start_time))
+
+
+datos = pandas.read_csv("reddit_opinion_democrats.csv", usecols=[0,2,6,8], nrows=5000)
+
+usuarios = {}
+dicc = {}
+
+print("Process termino de leer --- %s seconds ---" % (time.time() - start_time))
+
+for fila in datos.itertuples(index=False):
+	post_id = fila[0]
+	caption = fila[1]
+	username = fila[2]
+	cantidad_likes = fila[3]
+
+	if username not in usuarios:
+		usuarios[username] = Usuario(username)
+
+	usuarios[username].post_usuario.append(Post(post_id, caption, cantidad_likes))
+
+print("Process termino creacion usuarios --- %s seconds ---" % (time.time() - start_time))
+
+for usuario in usuarios.values():
+	for post in usuario.post_usuario:
+
+		for palabra in str(post.caption).lower().split(): 
+			palabra = palabra.strip(".?,#$!¿&[]}{/() ")
+			if palabra not in dicc:
+				dicc[palabra] = ListaEnlazada()
+			dicc[palabra].insertar_sin_repeticion(post.caption)
+
+
+print("Process consulta --- %s seconds ---" % (time.time() - start_time))
+
+
+
 #dicc["and"].recorrer()
 
 consulta = input("Ingrese una palabra para buscar en los captions: ").lower().strip(".?,#$!¿&[]}{/() ")
 
 consulta = consulta.split()
 
-l1 = dicc[consulta[0]]
-l2 = dicc[consulta[1]]
+print("Process termino consulta --- %s seconds ---" % (time.time() - start_time))
 
-comparacion(l1,l2).recorrer()
+try:
+	aux_list = dicc[consulta[0]]
+	for i in range(1,len(consulta)):
+		aux_list = comparacion(aux_list, dicc[consulta[i]])
+except:
+	aux_list = ListaEnlazada()
+	
 
+#aux_list.recorrer()
 
+print("Process final --- %s seconds ---" % (time.time() - start_time))
 
+lista_usuarios = list(usuarios.keys())
 
+for usuario in usuarios.values():
+	usuario.amigos = ListaEnlazada()
+	cantidad_amigos = random.randint(0, 50)
+	amigos = random.sample(lista_usuarios, cantidad_amigos)
 
+	if usuario in amigos:
+		amigos.remove(usuario)
 
+	for amigo in amigos:
+		usuario.amigos.insertar(amigo)
 
 
+for usuario in usuarios.values():
+	for post in usuario.post_usuario:
+		post.usuarios_likes = ListaEnlazada()
 
+		usuarios_like = random.sample(lista_usuarios, abs(post.cant_likes))
+		for usuario in usuarios_like:
+			post.usuarios_likes.insertar(usuario)
 
-
-
-
-
-
-
-
-
-
-
-"""
-caption = pandas.read_csv("reddit_opinion_democrats.csv", usecols=[2], nrows=100000)["self_text"].tolist()
-
-dicc = {}
-for comentario in caption:
-	for palabra in str(comentario).lower().split():
-		if palabra.strip(".?,#$!¿&[]{} ") not in dicc:
-			dicc[palabra.strip(".?,#$!¿&[]{} ")] = ListaEnlazada()
-
-		dicc[palabra.strip(".?,#$!¿&[]{} ")].insertar(Nodo(comentario))
-
-
-dicc["amen."].recorrer()
-"""
-
-
-
-
-"""
-for i in indices:
-
-	newUsuario = Usuario(datos.loc[i].tolist()[2])
-	newPost    = Post(datos.loc[i].tolist()[0],datos.loc[i].tolist()[1])
-
-	if newUsuario.username not in lista_nombres_usuarios:
-		lista_usuarios.append(newUsuario)
-		lista_nombres_usuarios.append(newUsuario.username)
-
-		newUsuario.post_usuario.append(newPost)
-
-	else:
-
-		for i in range(len(lista_nombres_usuarios)):
-
-			if newUsuario.username == lista_usuarios[i].username:
-
-				lista_usuarios[i].post_usuario.append(newPost)
-"""
-
-
-"""
-post_id = datos[header_datos[0]].tolist()
-caption = datos[header_datos[1]].tolist()
-username = datos[header_datos[2]].tolist()
-
-lista_usuarios = []
-lista_nombres_usuarios = []
-"""
-
-
-
-
-"""
-for i in range(len(username)):
-	newUsuario = Usuario(username[i])
-	newPost = Post(post_id[i], caption[i])
-
-	if (newUsuario.username not in lista_nombres_usuarios):
-
-		lista_usuarios.append(newUsuario)
-		lista_nombres_usuarios.append(newUsuario.username)
-		newUsuario.post_usuario.append(newPost)
-
-	else:
-"""
-
-"""
-lista_usuarios = []
-lista_nombres_usuarios = []
-lista_post = []
-lista_id_post = []
-
-for i in range(len(username)):
-
-	create_user = Usuario(username[i])
-	create_post = Post(post_id[i], caption[i])
-
-	contador = 0
-
-	if post_id[i] not in lista_id_post:
-		lista_id_post.append(post_id)
-		lista_post.append(create_post)
-
-		if username[i] not in lista_nombres_usuarios:
-			lista_nombres_usuarios.append(username[i])
-			create_user.post_usuario.append(create_post)
-			lista_usuarios.append(create_user)
-
-		else:
-			for usuario in lista_usuarios:
-
-				if usuario.username == username[i]:
-					usuario.post_usuario.append(create_post)
-
-	else: 
-
-		break
-#print(lista_usuarios)
-"""
-
-
-
-"""
-for i in range(len(username)):
-
-	post = Post(username[i],post_id[i],caption[i]) #Falta añadir el atribitu likes, que es una lista de nombres de usuario
-
-	if post_id[i] not in lista_id_post:
-		lista_id_post.append(post_id[i])
-		lista_post.append(post)
-		usuario = Usuario(username[i])  #Falta añadir el atribituto following, que es una lista de nombres de usuario
-		usuario.post_usuario.append(post)
-		lista_usuarios.append(usuario)
-
-"""
-
-
-
-
-
-"""
-#Lista de Usarios y lista de Posts
-for i in range(len(owner_id)):
-  post = Post(owner_id[i],post_id[i],caption[i]) #Falta añadir el atribitu likes, que es una lista de nombres de usuario
-  if post_id[i] not in lista_id_post:
-    lista_id_post.append(post_id[i])
-    lista_post.append(post)
-
-    if owner_id[i] not in lista_id_usuarios:
-      lista_id_usuarios.append(owner_id[i])
-      usuario = Usuario(owner_id[i],owner_username[i])  #Falta añadir el atribituto following, que es una lista de nombres de usuario
-      usuario.post_usuario.append(post)
-      lista_usuarios.append(usuario)
-
-    #Dado que están ordenadas por owner_id
-    else:
-      usuario.post_usuario.append(post)
-
-owner_username = datos[header_datos[6]].tolist()
-owner_id = []
-owner_username = []
-post_id = []
-descripcion = []
-
-def leerDatos(nombreArchivo: string)->void:
-	try:
-		archivo = open(nombreArchivo, "r",encoding="utf-8")
-	except Exception as e:
-		print(e)
-	else:
-		encabezado = archivo.readline()
-		for lineaArchivo in archivo.readline():
-
-			datos = lineaArchivo.strip().split(",")
-
-			owner_id.append(datos[0])
-			#owner_username.append(datos[1])
-			#post_id.append(datos[2])
-			#descripcion.append(datos[4])
-
-leerDatos("reddit_opinion_democrats.csv")
-
-print(owner_id)
-"""
+usuarios[lista_usuarios[0]].post_usuario[0].usuarios_likes.recorrer()
+print(
+usuarios[lista_usuarios[0]].post_usuario[0].usuarios_likes.cantidad)
