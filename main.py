@@ -1,12 +1,8 @@
 
-#Iportar librerias
+#Importar librerias
 import pandas
-import time
 import random
 import matplotlib.pyplot as plt
-
-start_time = time.time()
-print("Process inicio --- %s seconds ---" % (time.time() - start_time))
 
 # Creacion de Clases
 
@@ -16,7 +12,6 @@ class Nodo:
 		self.dato = dato
 		self.sig = None
 		self.ant = None
-
 
 class ListaEnlazada:
 
@@ -40,8 +35,10 @@ class ListaEnlazada:
 		else:
 			nuevo_nodo = Nodo(dato)
 			nuevo_nodo.sig = self.head
+
 			if self.head != None:
 				self.head.ant = nuevo_nodo
+
 			self.head = nuevo_nodo
 			self.cantidad += 1
 
@@ -55,7 +52,7 @@ class ListaEnlazada:
 
 	def recorrer(self):
 		aux_head = self.head
-		if aux_head is None:
+		if aux_head is None:        #La lista esta vacia, asi que no la recorre
 			return
 		if type(aux_head.dato) is Usuario:
 			while aux_head != None:
@@ -101,13 +98,13 @@ class Usuario:
 	def __init__(self, username: str):
 		self.username = username
 		self.amigos = ListaEnlazada()
-		self.post_usuario = []
+		self.post_usuario = ListaEnlazada()
 
 #Creacion de Funciones
 
 #Lectura y procesamiento de datos
 def lectura_datos(nombre_archivo)->tuple:
-    datos = pandas.read_csv(nombre_archivo, usecols=[0,2,6,8], nrows=50000)
+    datos = pandas.read_csv(nombre_archivo, usecols=[0,2,6,8], nrows=30000)
 
     usuarios = {}
     posts = {}
@@ -123,10 +120,11 @@ def lectura_datos(nombre_archivo)->tuple:
             usuarios[username] = Usuario(username)
         post = Post(post_id, username, caption, cantidad_likes)
         posts[post_id] = post
-        usuarios[username].post_usuario.append(post)
+        usuarios[username].post_usuario.insertar(post)
 
     return usuarios, posts
 
+#Creacion de la lista de amigos para cada usuario
 def creacion_amigos(usuarios:dict):
 
     lista_usuarios = list(usuarios.values())
@@ -139,16 +137,16 @@ def creacion_amigos(usuarios:dict):
             amigos.remove(usuario)
 
         for amigo in amigos:
-            usuario.amigos.insertar(amigo)
-        #print(f"Estoy en creacion de amigos. EL tipo de amigos es: {type(usuario.amigos.head)}")
+            usuario.amigos.insertar(amigo)  #sample no repite elementos
 
+#Creacion de la lista de usuarios que dieron like a los post
 def creacion_likes(usuarios:dict, posts:dict):
-    lista_usuarios = list(usuarios.keys())
+    lista_usuarios = list(usuarios.values())
 
     for post in posts.values():
         try:
             usuarios_like = random.sample(lista_usuarios, abs(post.cant_likes))
-        except:
+        except ValueError:                                                                     #Si hay más cantidad de likes que de usuarios
             
             post.cant_likes = len(lista_usuarios)
             usuarios_like = random.sample(lista_usuarios, post.cant_likes)
@@ -181,120 +179,98 @@ def crear_indice_post(posts:dict)->dict:
     indice_post = {}
     for post in posts.values():
         for palabra in str(post.caption).lower().split(): 
-                palabra = palabra.strip(".?,#$!¿&[]}{/()*+-:;\"='¿¡%|~` ")
-                if palabra not in stopwords:
-                    if palabra not in indice_post:
-                        indice_post[palabra] = ListaEnlazada()
-                    indice_post[palabra].insertar_sin_repeticion(post)
+                palabra = palabra.strip(".?,#$!¿&[]}{/()*+-:;\"\\='¿¡%|~` ")
+                if palabra not in indice_post:
+                    indice_post[palabra] = ListaEnlazada()
+                indice_post[palabra].insertar_sin_repeticion(post)
     return indice_post
 
 
 #Lee terminos ingresados en la consola e imprime los post que contienen esos termninos
-def consulta_indice_post(indice_post: dict):
+def consulta_indice_post(indice_post: dict, stopwords:list):
 
-    consulta = input("Ingrese una palabra para buscar en los captions: ").lower().strip(".?,#$!¿&[]}{/() ")
+    consulta = input("Ingrese una palabra para buscar en los captions: ").lower().strip(".?,#$!¿&[]}{/()*+-:;\"\\='¿¡%|~` ")
     consulta = consulta.split()
     consulta_sin_stopwords = []
     for palabra in consulta:
         if palabra not  in stopwords:
             consulta_sin_stopwords.append(palabra)
     consulta = consulta_sin_stopwords
-    try:
-        aux_list = indice_post[consulta[0]]
-        for i in range(1,len(consulta)):
-            aux_list = comparacion(aux_list, indice_post[consulta[i]])
-    except:
-        aux_list = ListaEnlazada()
+    if consulta == []:
+        print("Solo ha ingresado stopword, termino/s en demasiados posts")
+        return
+    for termino in consulta:
+        if termino not in indice_post:
+            print(f"No hay post que incluyan el termino {termino}")
+            return
+
+    aux_list = indice_post[consulta[0]]
+    for i in range(1,len(consulta)):
+        aux_list = comparacion(aux_list, indice_post[consulta[i]])
 
     print(f"Post que tienen los terminos {consulta}: ")
     aux_list.recorrer()
 
 
-
+#Crea un indice invertido de un usuario y sus amigos
 def crear_indice_amigos(usuarios:dict)->dict:
     indice_amigos = {}
     for usuario in usuarios.values():
        indice_amigos[usuario.username] = usuario.amigos
 
     return indice_amigos
-#Rellena el atributo amigos de cada usaurio con una lista de amigos aleatorios, debido a carencias del dataset
+#Rellena el atributo amigos de cada usuario con una lista de amigos aleatorios, debido a carencias del dataset
 
 def consulta_indice_amigos(indice_amigos: dict):
     consulta = input("Ingrese un username: ")
-
+    consulta = consulta.strip()
 
     try:
         amigos = indice_amigos[consulta]
         print(f"Amigos de {consulta}: ")
-        print(f"amigos type:", type(amigos.head.dato))
         amigos.recorrer()
     except AttributeError:
         print(f"No se encontro un usuario con ese nombre {consulta}")
     except KeyError:
         print(f"No se encontró el usuario {consulta}")
 
+#Elimina las stopwords del indice invertido de posts
+def crear_lista_stopwords(indice_post: dict)->list:
+    lista_aux = []
+    for palabra in indice_post.keys():
+        lista_aux.append((palabra, indice_post[palabra].cantidad))
+
+    lista_aux.sort(key=lambda x: x[1], reverse=True)
+    stopwords = [x[0] for x in lista_aux[:100]]
+    return stopwords
+
+#Elimia las stopwords del indice invertido de posts
+def eliminar_stopwords_indice(stopwords:list):
+    for stopword in stopwords:
+        del indice_post[stopword]
 
 
 
-stopwords = ["about", "above", "across", "after", "against", "along", "among", 
-    "around", "as", "at", "before", "behind", "below", "beneath", 
-    "beside", "between", "beyond", "but", "by", "despite", "down", 
-    "during", "except", "for", "from", "in", "inside", "into", "like", 
-    "near", "of", "off", "on", "onto", "out", "outside", "over", 
-    "past", "regarding", "since", "through", "throughout", "to", 
-    "toward", "under", "underneath", "until", "up", "upon", "with", 
-    "within", "without",                                #preposiciones
-
-    "i", "me", "my", "mine", "myself",
-    "you", "your", "yours", "yourself", "yourselves",
-    "he", "him", "his", "himself",
-    "she", "her", "hers", "herself",
-    "it", "its", "itself",
-    "we", "us", "our", "ours", "ourselves",
-    "they", "them", "their", "theirs", "themselves"
-                                                        #pronombres
-    "the", "that","this","these","a","an"               #articulos
-
-    "for","nor","and", "but","or","yet","so"     #conjunciones
-    ] 
 
 usuarios, posts = lectura_datos("reddit_opinion_democrats.csv")
-print("Fin leer datos, Inicio crear indice post --- %s seconds ---" % (time.time() - start_time))
+
 indice_post = crear_indice_post(posts)
-print("Fin crear indice post , inicio creacion amigos --- %s seconds ---" % (time.time() - start_time))
+
 creacion_amigos(usuarios)
-print("Fin creacion amigos, inicio creacion likes --- %s seconds ---" % (time.time() - start_time))
+
 creacion_likes(usuarios, posts)
-print("Fin creacion likes, inicio crear indice amigos --- %s seconds ---" % (time.time() - start_time))
+
 indice_amigos = crear_indice_amigos(usuarios)
-print("Fin crear indice amigos --- %s seconds ---" % (time.time() - start_time))
 
-#Grafico de las 10 palabras mas comunes en los captions
-lista = []
-for palabra in indice_post.keys():
-    lista.append((palabra, indice_post[palabra].cantidad))
-
-
-lista.sort(key=lambda x: x[1], reverse=True)
-
-plt.bar([x[0] for x in lista[:100]], [x[1] for x in lista[:100]])
-plt.xlabel("Palabras")
-plt.ylabel("Cantidad de posts")
-plt.title("Top 100 palabras más comunes en los captions")
-plt.xticks(rotation=45)
-plt.show()
-
+stopwords = crear_lista_stopwords(indice_post)
 
 termino = ""
+
 while termino.lower().strip() !="s":
-    try:
-        
-        print("Inicio consulta indice post --- %s seconds ---" % (time.time() - start_time))
-        consulta_indice_post(indice_post)
-        print("Fin consulta indice post, Inicio consulta indice amigos  --- %s seconds ---" % (time.time() - start_time))
-        consulta_indice_amigos(indice_amigos)
-        print("Fin consulta indice amigos --- %s seconds ---" % (time.time() - start_time))
-    except AttributeError:
-        print("No se enocntraron post con esos ternminos")
-    termino = input("Desea finalizar la busqueda? Escriba s para terminar: ")
-print("Process final --- %s seconds ---" % (time.time() - start_time))
+    consulta_indice_post(indice_post,stopwords)
+
+    consulta_indice_amigos(indice_amigos)
+
+    termino = input("Desea finalizar la busqueda? Escriba s para terminar y cualquier otra tecla para continuar: ")
+
+
